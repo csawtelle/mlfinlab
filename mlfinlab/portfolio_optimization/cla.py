@@ -1,36 +1,38 @@
-'''
-This module implements the famous Critical Line Algorithm for mean-variance portfolio
-optimisation. It is reproduced with modification from the following paper:
-`D.H. Bailey and M.L. Prado “An Open-Source Implementation of the Critical- Line Algorithm for
-Portfolio Optimization”,Algorithms, 6 (2013), 169-196. <http://dx.doi.org/10.3390/a6010169>`_
-'''
-
+# pylint: disable=missing-module-docstring
 import numbers
 from math import log, ceil
 import numpy as np
 import pandas as pd
+from mlfinlab.portfolio_optimization.returns_estimators import ReturnsEstimation
 
 
 class CLA:
     # pylint: disable=too-many-instance-attributes
-    '''
-    CLA is a famous portfolio optimisation algorithm used for calculating the optimal allocation weights for a given
-    portfolio. It solves the optimisation problem with constraints on each weight - lower and upper bounds on the weight
-    value. This class can compute multiple types of solutions - the normal cla solution, minimum variance solution,
-    maximum sharpe solution and finally the solution to the efficient frontier.
-    '''
+    """
+    This class implements the famous Critical Line Algorithm for mean-variance portfolio optimisation. It is reproduced with
+    modification from the following paper: `D.H. Bailey and M.L. Prado “An Open-Source Implementation of the Critical- Line
+    Algorithm for Portfolio Optimization”,Algorithms, 6 (2013), 169-196. <http://dx.doi.org/10.3390/a6010169>`_.
 
-    def __init__(self, weight_bounds=(0, 1), calculate_returns="mean"):
-        '''
+    The Critical Line Algorithm is a famous portfolio optimisation algorithm used for calculating the optimal allocation weights
+    for a given portfolio. It solves the optimisation problem with optimisation constraints on each weight - lower and upper
+    bounds on the weight value. This class can compute multiple types of solutions -
+            1. CLA Turning Points
+            2. Minimum Variance
+            3. Maximum Sharpe
+            4. Efficient Frontier Allocations
+    """
+
+    def __init__(self, weight_bounds=(0, 1), calculate_expected_returns="mean"):
+        """
         Initialise the storage arrays and some preprocessing.
 
         :param weight_bounds: (tuple) a tuple specifying the lower and upper bound ranges for the portfolio weights
-        :param calculate_returns: (str) the method to use for calculation of expected returns.
+        :param calculate_expected_returns: (str) the method to use for calculation of expected returns.
                                         Currently supports "mean" and "exponential"
-        '''
+        """
 
         self.weight_bounds = weight_bounds
-        self.calculate_returns = calculate_returns
+        self.calculate_expected_returns = calculate_expected_returns
         self.weights = list()
         self.lambdas = list()
         self.gammas = list()
@@ -43,23 +45,24 @@ class CLA:
         self.min_var = None
         self.efficient_frontier_means = None
         self.efficient_frontier_sigma = None
+        self.returns_estimator = ReturnsEstimation()
 
     @staticmethod
     def _infnone(number):
-        '''
-        Converts a Nonetype object to inf
+        """
+        Converts a Nonetype object to inf.
 
         :param number: (int/float/None) a number
         :return: (float) -inf or number
-        '''
+        """
         return float("-inf") if number is None else number
 
     def _init_algo(self):
-        '''
+        """
         Initial setting up of the algorithm. Calculates the first free weight of the first turning point.
 
         :return: (list, list) asset index and the corresponding free weight value
-        '''
+        """
 
         # Form structured array
         structured_array = np.zeros((self.expected_returns.shape[0]), dtype=[("id", int), ("mu", float)])
@@ -83,7 +86,7 @@ class CLA:
 
     @staticmethod
     def _compute_bi(c_final, asset_bounds_i):
-        '''
+        """
         Calculates which bound value to assign to a bounded asset - lower bound or upper bound.
 
         :param c_final: (float) a value calculated using the covariance matrices of free weights.
@@ -91,15 +94,15 @@ class CLA:
                           more information.
         :param asset_bounds_i: (list) a list containing the lower and upper bound values for the ith weight
         :return: bounded weight value
-        '''
+        """
 
         if c_final > 0:
             return asset_bounds_i[1][0]
         return asset_bounds_i[0][0]
 
     def _compute_w(self, covar_f_inv, covar_fb, mean_f, w_b):
-        '''
-        Compute the turning point associated with the current set of free weights F
+        """
+        Compute the turning point associated with the current set of free weights F.
 
         :param covar_f_inv: (np.array) inverse of covariance matrix of free assets
         :param covar_fb: (np.array) covariance matrix between free assets and bounded assets
@@ -107,7 +110,7 @@ class CLA:
         :param w_b: (np.array) bounded asset weight values
 
         :return: (array, float) list of turning point weights and gamma value from the langrange equation
-        '''
+        """
 
         # Compute gamma
         ones_f = np.ones(mean_f.shape)
@@ -130,8 +133,8 @@ class CLA:
         return free_asset_weights, g_final
 
     def _compute_lambda(self, covar_f_inv, covar_fb, mean_f, w_b, asset_index, b_i):
-        '''
-        Calculate the lambda value in the langrange optimsation equation
+        """
+        Calculate the lambda value in the langrange optimsation equation.
 
         :param covar_f_inv: (np.array) inverse of covariance matrix of free assets
         :param covar_fb: (np.array) covariance matrix between free assets and bounded assets
@@ -140,7 +143,7 @@ class CLA:
         :param asset_index: (int) index of the asset in the portfolio
         :param b_i: (list) list of upper and lower bounded weight values
         :return: (float) lambda value
-        '''
+        """
 
         # Compute C
         ones_f = np.ones(mean_f.shape)
@@ -171,12 +174,12 @@ class CLA:
         return lambda_value, b_i
 
     def _get_matrices(self, free_weights):
-        '''
-        Calculate the required matrices between free and bounded assets
+        """
+        Calculate the required matrices between free and bounded assets.
 
         :param free_weights: (list) list of free assets/weights
         :return: (tuple of np.array matrices) the corresponding matrices
-        '''
+        """
 
         covar_f = self._reduce_matrix(self.cov_matrix, free_weights, free_weights)
         mean_f = self._reduce_matrix(self.expected_returns, free_weights, [0])
@@ -186,46 +189,46 @@ class CLA:
         return covar_f, covar_fb, mean_f, w_b
 
     def _get_bounded_weights(self, free_weights):
-        '''
-        Compute the list of bounded assets
+        """
+        Compute the list of bounded assets.
 
         :param free_weights: (np.array) list of free weights/assets
         :return: (np.array) list of bounded assets/weights
-        '''
+        """
 
         return self._diff_lists(list(range(self.expected_returns.shape[0])), free_weights)
 
     @staticmethod
     def _diff_lists(list_1, list_2):
-        '''
-        Calculate the set difference between two lists
+        """
+        Calculate the set difference between two lists.
 
         :param list_1: (list) a list of asset indices
         :param list_2: (list) another list of asset indices
         :return: (list) set difference between the two input lists
-        '''
+        """
 
         return list(set(list_1) - set(list_2))
 
     @staticmethod
     def _reduce_matrix(matrix, row_indices, col_indices):
-        '''
-        Reduce a matrix to the provided set of rows and columns
+        """
+        Reduce a matrix to the provided set of rows and columns.
 
         :param matrix: (np.array) a matrix whose subset of rows and columns we need
         :param row_indices: (list) list of row indices for the matrix
         :param col_indices: (list) list of column indices for the matrix
         :return: (np.array) subset of input matrix
-        '''
+        """
 
         return matrix[np.ix_(row_indices, col_indices)]
 
     def _purge_num_err(self, tol):
-        '''
-        Purge violations of inequality constraints (associated with ill-conditioned cov matrix)
+        """
+        Purge violations of inequality constraints (associated with ill-conditioned cov matrix).
 
         :param tol: (float) tolerance level for purging
-        '''
+        """
 
         index_1 = 0
         while True:
@@ -235,7 +238,7 @@ class CLA:
             if abs(sum(self.weights[index_1]) - 1) > tol:
                 flag = True
             else:
-                for index_2 in range(self.weights[index_1].shape[0]):
+                for index_2 in range(len(self.weights[index_1])):
                     if (
                             self.weights[index_1][index_2] - self.lower_bounds[index_2] < -tol
                             or self.weights[index_1][index_2] - self.upper_bounds[index_2] > tol
@@ -251,9 +254,9 @@ class CLA:
                 index_1 += 1
 
     def _purge_excess(self):
-        '''
-        Remove violations of the convex hull
-        '''
+        """
+        Remove violations of the convex hull.
+        """
 
         index_1, repeat = 0, False
         while True:
@@ -280,13 +283,13 @@ class CLA:
 
     @staticmethod
     def _golden_section(obj, left, right, **kwargs):
-        '''
-        Golden section method. Maximum if kargs['minimum']==False is passed
+        """
+        Golden section method. Maximum if kargs['minimum']==False is passed.
 
         :param obj: (function) The objective function on which the extreme will be found.
         :param left: (float) The leftmost extreme of search
         :param right: (float) The rightmost extreme of search
-        '''
+        """
 
         tol, sign, args = 1.0e-9, -1, None
         args = kwargs.get("args", None)
@@ -320,14 +323,14 @@ class CLA:
         return x_2, sign * f_2
 
     def _eval_sr(self, alpha, w_0, w_1):
-        '''
-        Evaluate the sharpe ratio of the portfolio within the convex combination
+        """
+        Evaluate the sharpe ratio of the portfolio within the convex combination.
 
         :param alpha: (float) convex combination value
         :param w_0: (list) first endpoint of convex combination of weights
         :param w_1: (list) second endpoint of convex combination of weights
         :return:
-        '''
+        """
 
         weights = alpha * w_0 + (1 - alpha) * w_1
         returns = np.dot(weights.T, self.expected_returns)[0, 0]
@@ -335,12 +338,12 @@ class CLA:
         return returns / volatility
 
     def _bound_free_weight(self, free_weights):
-        '''
-        Add a free weight to list of bounded weights
+        """
+        Add a free weight to list of bounded weights.
 
         :param free_weights: (list) list of free-weight indices
         :return: (float, int, int) lambda value, index of free weight to be bounded, bound weight value
-        '''
+        """
 
         lambda_in = None
         i_in = None
@@ -359,12 +362,12 @@ class CLA:
         return lambda_in, i_in, bi_in
 
     def _free_bound_weight(self, free_weights):
-        '''
-        Add a bounded weight to list of free weights
+        """
+        Add a bounded weight to list of free weights.
 
         :param free_weights: (list) list of free-weight indices
         :return: (float, int) lambda value, index of the bounded weight to be made free
-        '''
+        """
 
         lambda_out = None
         i_out = None
@@ -385,37 +388,41 @@ class CLA:
                     lambda_out, i_out = lambda_i, i
         return lambda_out, i_out
 
-    def _initialise(self, asset_prices, resample_by):
-        '''
-        Initialise covariances, upper-counds, lower-bounds and storage buffers
+    def _initialise(self, asset_prices, expected_asset_returns, covariance_matrix, resample_by):
+        # pylint: disable=invalid-name, too-many-branches, bad-continuation
+        """
+        Initialise covariances, upper-counds, lower-bounds and storage buffers.
 
-        :param asset_prices: (pd.Dataframe) dataframe of asset prices
+        :param asset_prices: (pd.Dataframe) dataframe of asset prices indexed by date
+        :param expected_asset_returns: (list) a list of mean stock returns (mu)
+        :param covariance_matrix: (pd.Dataframe) user supplied dataframe of asset returns indexed by date. Used for
+                                              calculation of covariance matrix
         :param resample_by: (str) specifies how to resample the prices - weekly, daily, monthly etc.. Defaults to
                                   'B' meaning daily business days which is equivalent to no resampling
-        '''
+        """
 
-        # Initial checks
-        if not isinstance(asset_prices, pd.DataFrame):
-            raise ValueError("Asset prices matrix must be a dataframe")
-        if not isinstance(asset_prices.index, pd.DatetimeIndex):
-            raise ValueError("Asset prices dataframe must be indexed by date.")
-
-        # Resample the asset prices
-        asset_prices = asset_prices.resample(resample_by).last()
-
-        # Calculate the expected returns
-        if self.calculate_returns == "mean":
-            self.expected_returns = self._calculate_mean_historical_returns(asset_prices=asset_prices)
-        elif self.calculate_returns == "exponential":
-            self.expected_returns = self._calculate_exponential_historical_returns(asset_prices=asset_prices)
-        else:
-            raise ValueError("Unknown returns specified. Supported returns - mean, exponential")
+        # Calculate the returns if the user does not supply a returns matrix
+        self.expected_returns = expected_asset_returns
+        if expected_asset_returns is None:
+            if self.calculate_expected_returns == "mean":
+                self.expected_returns = self.returns_estimator.calculate_mean_historical_returns(
+                                                                        asset_prices=asset_prices,
+                                                                        resample_by=resample_by)
+            elif self.calculate_expected_returns == "exponential":
+                self.expected_returns = self.returns_estimator.calculate_exponential_historical_returns(
+                                                                        asset_prices=asset_prices,
+                                                                        resample_by=resample_by)
+            else:
+                raise ValueError("Unknown returns specified. Supported returns - mean, exponential")
         self.expected_returns = np.array(self.expected_returns).reshape((len(self.expected_returns), 1))
         if (self.expected_returns == np.ones(self.expected_returns.shape) * self.expected_returns.mean()).all():
             self.expected_returns[-1, 0] += 1e-5
 
         # Calculate the covariance matrix
-        self.cov_matrix = np.asarray(asset_prices.cov())
+        if covariance_matrix is None:
+            returns = self.returns_estimator.calculate_returns(asset_prices=asset_prices, resample_by=resample_by)
+            covariance_matrix = returns.cov()
+        self.cov_matrix = np.asarray(covariance_matrix)
 
         # Intialise lower bounds
         if isinstance(self.weight_bounds[0], numbers.Real):
@@ -435,48 +442,42 @@ class CLA:
         self.gammas = []
         self.free_weights = []
 
-    @staticmethod
-    def _calculate_mean_historical_returns(asset_prices, frequency=252):
-        '''
-        Calculate the annualised mean historical returns from asset price data
-
-        :param asset_prices: (pd.DataFrame) asset price data
-        :return: (np.array) returns per asset
-        '''
-
-        returns = asset_prices.pct_change().dropna(how="all")
-        returns = returns.mean() * frequency
-        return returns
-
-    @staticmethod
-    def _calculate_exponential_historical_returns(asset_prices, frequency=252, span=500):
-        '''
-        Calculate the exponentially-weighted mean of (daily) historical returns, giving
-        higher weight to more recent data.
-
-        :param asset_prices: (pd.DataFrame) asset price data
-        :return: (np.array) returns per asset
-        '''
-
-        returns = asset_prices.pct_change().dropna(how="all")
-        returns = returns.ewm(span=span).mean().iloc[-1] * frequency
-        return returns
-
-    def allocate(self, asset_prices, solution="cla_turning_points", resample_by="B"):
-        # pylint: disable=consider-using-enumerate,too-many-locals,too-many-branches,too-many-statements
-        '''
+    def allocate(self,
+                 asset_names,
+                 asset_prices=None,
+                 expected_asset_returns=None,
+                 covariance_matrix=None,
+                 solution="cla_turning_points",
+                 resample_by=None):
+        # pylint: disable=consider-using-enumerate,too-many-locals,too-many-branches,too-many-statements,bad-continuation
+        """
         Calculate the portfolio asset allocations using the method specified.
 
+        :param asset_names: (list) a list of strings containing the asset names
         :param asset_prices: (pd.Dataframe) a dataframe of historical asset prices (adj closed)
+        :param expected_asset_returns: (list) a list of mean stock returns (mu)
+        :param covariance_matrix: (pd.Dataframe/numpy matrix) user supplied covariance matrix of asset returns
         :param solution: (str) specify the type of solution to compute. Options are: cla_turning_points, max_sharpe,
                                min_volatility, efficient_frontier
         :param resample_by: (str) specifies how to resample the prices - weekly, daily, monthly etc.. Defaults to
-                                  'B' meaning daily business days which is equivalent to no resampling
-        '''
+                                  None for no resampling
+        """
+
+        # Initial checks
+        if asset_prices is None and (expected_asset_returns is None or covariance_matrix is None):
+            raise ValueError("Either supply your own asset returns matrix or pass the asset prices as input")
+
+        if asset_prices is not None:
+            if not isinstance(asset_prices, pd.DataFrame):
+                raise ValueError("Asset prices matrix must be a dataframe")
+            if not isinstance(asset_prices.index, pd.DatetimeIndex):
+                raise ValueError("Asset prices dataframe must be indexed by date.")
 
         # Some initial steps before the algorithm runs
-        self._initialise(asset_prices=asset_prices, resample_by=resample_by)
-        assets = asset_prices.columns
+        self._initialise(asset_prices=asset_prices,
+                         resample_by=resample_by,
+                         expected_asset_returns=expected_asset_returns,
+                         covariance_matrix=covariance_matrix)
 
         # Compute the turning points, free sets and weights
         free_weights, weights = self._init_algo()
@@ -526,16 +527,16 @@ class CLA:
         self._purge_excess()
 
         # Compute the specified solution
-        self._compute_solution(assets=assets, solution=solution)
+        self._compute_solution(assets=asset_names, solution=solution)
 
     def _compute_solution(self, assets, solution):
-        '''
-        Compute the desired solution to the portfolio optimisation problem
+        """
+        Compute the desired solution to the portfolio optimisation problem.
 
         :param assets: (list) a list of asset names
         :param solution: (str) specify the type of solution to compute. Options are: cla_turning_points, max_sharpe,
                                min_volatility, efficient_frontier
-        '''
+        """
 
         if solution == "max_sharpe":
             self.max_sharpe, self.weights = self._max_sharpe()
@@ -564,11 +565,11 @@ class CLA:
                              "efficient_frontier, min_volatility, max_sharpe")
 
     def _max_sharpe(self):
-        '''
-        Compute the maximum sharpe portfolio allocation
+        """
+        Compute the maximum sharpe portfolio allocation.
 
         :return: (float, np.array) tuple of max. sharpe value and the set of weight allocations
-        '''
+        """
 
         # 1) Compute the local max SR portfolio between any two neighbor turning points
         w_sr, sharpe_ratios = [], []
@@ -585,11 +586,11 @@ class CLA:
         return maximum_sharp_ratio, weights_with_max_sharpe_ratio
 
     def _min_volatility(self):
-        '''
-        Compute minimum volatility portfolio allocation
+        """
+        Compute minimum volatility portfolio allocation.
 
         :return: (float, np.array) tuple of minimum variance value and the set of weight allocations
-        '''
+        """
 
         var = []
         for weights in self.weights:
@@ -600,12 +601,12 @@ class CLA:
 
     def _efficient_frontier(self, points=100):
         # pylint: disable=invalid-name
-        '''
-        Compute the entire efficient frontier solution
+        """
+        Compute the entire efficient frontier solution.
 
         :param points: (int) number of efficient frontier points to be calculated
         :return: tuple of mean, variance amd weights of the frontier solutions
-        '''
+        """
 
         means, sigma, weights = [], [], []
 
