@@ -8,7 +8,7 @@ import mlfinlab.cross_validation as cross_validation
 import mlfinlab.data_structures as data_structures
 import mlfinlab.multi_product as multi_product
 import mlfinlab.filters.filters as filters
-import mlfinlab.labeling.labeling as labeling
+import mlfinlab.labeling as labeling
 import mlfinlab.features.fracdiff as fracdiff
 import mlfinlab.sample_weights as sample_weights
 import mlfinlab.sampling as sampling
@@ -19,23 +19,26 @@ import mlfinlab.feature_importance as feature_importance
 import mlfinlab.ensemble as ensemble
 import mlfinlab.portfolio_optimization as portfolio_optimization
 import mlfinlab.clustering as clustering
+import mlfinlab.backtest_statistics.statistics as backtest_statistics
 
 
 # Sponsorship notification
-try:
-    webbrowser.get('google-chrome').open('https://www.patreon.com/HudsonThames', new=2)
-except webbrowser.Error as error:
-    try:
-        webbrowser.get('firefox').open('https://www.patreon.com/HudsonThames', new=2)
-    except webbrowser.Error as error:
-        try:
-            webbrowser.get('windows-default').open('https://www.patreon.com/HudsonThames', new=2)
-        except webbrowser.Error as error:
-            print('Support us on Patreon: https://www.patreon.com/HudsonThames')
+# try:
+#     webbrowser.get('google-chrome').open('https://www.patreon.com/HudsonThames', new=2)
+# except webbrowser.Error as error:
+#     try:
+#         webbrowser.get('firefox').open('https://www.patreon.com/HudsonThames', new=2)
+#     except webbrowser.Error as error:
+#         try:
+#             webbrowser.get('windows-default').open('https://www.patreon.com/HudsonThames', new=2)
+#         except webbrowser.Error as error:
+#             pass
 
 print()
 print()
 print(textwrap.dedent("""\
+Support us on Patreon: https://www.patreon.com/HudsonThames
+
 MlFinLab needs you! We need your help for us to keep on maintaining and implementing academic research based on 
 financial machine learning (for open-source). In order for us to continue we need to raise $4000 of monthly donations
 via Patreon - by December 2020. If we can't reach our goal, we will need to adopt more of a paid for service. We thought
