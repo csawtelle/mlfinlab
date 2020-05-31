@@ -33,8 +33,16 @@ This package has its foundations in the two graduate level textbooks:
 
 <div align="center">
    <a href="https://mlfinlab.readthedocs.io/en/latest/">
-   <img src="https://raw.githubusercontent.com/hudson-and-thames/mlfinlab/master/docs/source/logo/journals.png"><br>
+   <img src="https://raw.githubusercontent.com/hudson-and-thames/mlfinlab/master/docs/source/logo/journals.png">
+   </a>
 </div>
+
+## Praise for MlFinLab
+>"Those who doubt open source libraries just need to look at the impact of Pandas, Scikit-learn, and the like. MIFinLab 
+is doing to financial machine learning what Tensorflow and PyTorch are doing to deep learning."
+>
+> \- [Dr. Ernest Chan](https://www.linkedin.com/in/epchan/), Hedge Fund Manager at QTS & Author.
+
 
 ## Unlocking the Commons
 We are currently running a sponsorship model of “Unlocking the Commmons”. Our code base, online documentation, 
@@ -90,12 +98,16 @@ Benefits include:
    <a href="https://hudsonthames.org/sponsors/">
    <img src="https://raw.githubusercontent.com/hudson-and-thames/mlfinlab/master/docs/source/logo/gold_sponsors.png" height="200"><br>
 </div>
-
+<div align="center">
+   <a href="https://hudsonthames.org/sponsors/">
+   <img src="https://raw.githubusercontent.com/hudson-and-thames/mlfinlab/master/docs/source/logo/ali_saif.jpg" height="200"><br>
+</div>
 
 * [E.P. Chan & Associates](https://www.epchan.com/)
 * [Markov Capital](http://www.markovcapital.se/)
 * [Consilium Crypto](https://consiliumcrypto.ai)
 * [3Jane Capital](https://3jane.com/)
+* [Ali Saif](https://www.linkedin.com/in/ali-saif/)
 
 ---
 
