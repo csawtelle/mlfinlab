@@ -108,7 +108,7 @@ An example showing how the ONC algorithm is used can be seen below:
 .. code-block::
 
     import pandas as pd
-    from mlfinlab.clustering import ONC
+    from mlfinlab.clustering import onc
 
     # Import dataframe of returns for assets
     asset_returns = pd.read_csv(DATA_PATH, index_col='Date', parse_dates=True)
@@ -116,8 +116,14 @@ An example showing how the ONC algorithm is used can be seen below:
     # Calculate correlation matrix of returns
     assets_corr = asset_returns.corr()
 
-    # Class that contains needed function
-    onc = ONC()
-
     # Output of the ONC algorithm with 10 simulations for each number of clusters tested
     assets_corr_onc, clusters, silh_scores = onc.get_onc_clusters(assets_corr, repeat=10)
+
+Research Notebooks
+##################
+
+The following research notebooks can be used to better understand the Optimal Number of Clusters algorithm.
+
+* `Optimal Number of Clusters Example`_
+
+.. _`Optimal Number of Clusters Example`: https://github.com/hudson-and-thames/research/blob/master/Clustering/ONC/Optimal_Number_of_Clusters.ipynb
